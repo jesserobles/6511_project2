@@ -5,10 +5,10 @@ class FileParser:
         self.filepath = filepath
         self.parsed_payload = self.parse_file()
     
-    def parse_file(self):
+    def parse_file(self) -> dict:
         """Method to parse a graph coloring problem input file"""
         # Use set to remove duplicate edges
-        edges = set()
+        edges = []
         csp_payload = {}
         with open(self.filepath, "r") as file:
             for line in file:
@@ -20,7 +20,7 @@ class FileParser:
                     csp_payload["colors"] = int(line.split('=')[-1].strip())
                 else:
                     # Edge line
-                    edges.add(tuple(sorted(int(element.strip()) for element in line.strip().split(','))))
+                    edges.append(tuple(sorted(int(element.strip()) for element in line.strip().split(','))))
         csp_payload["edges"] = edges
         return csp_payload
 
