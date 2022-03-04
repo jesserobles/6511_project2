@@ -19,6 +19,12 @@ class GraphColoringConstraint(ConstraintBase):
         self.vertex2 = vertex2
     
     def is_satisfied(self, assignment: dict) -> bool:
+        """
+        Returns whether neighbors A, B satisfy the constraint when they have values A=a, B=b.
+
+        assignment: a dictionary with format {0:1} where the key is the vertex and the
+            value is the assigned color. In this problem, the values should not be the same.
+        """
         # If either vertex is unassigned, return True
         if self.vertex1 not in assignment or self.vertex2 not in assignment:
             return True
@@ -33,14 +39,15 @@ class GraphColoringCSP(CSPBase):
     D (domains) {D1, ..., Dn} are the possible colors for each variable, initially all colors.
     C (constraints) <(Xi, Xj), ci != cj>, where ci and cj are the colors assigned to adjacent vertices Xi and Xj.
     """
-    def __init__(self, edges: Union[List[Tuple[int, int]], Set[Tuple[int, int]]], colors: int) -> None:
+    def __init__(self, edges: Union[List[Tuple[int, int]], Set[Tuple[int, int]]], colors: int, neighbors:dict=None) -> None:
         self.edges = edges
+        self.neighbors = neighbors
         # Maintain list of arcs on object to improve speed
         self.arcs = deque(set(list(self.edges) + [(v[-1], v[0]) for v in self.edges]))
         self.colors = colors
         vertices = set(vertex for edge in edges for vertex in edge)
         domains = {vertex: list(range(colors)) for vertex in vertices}
-        super().__init__(vertices, domains)
+        super().__init__(vertices, domains, neighbors)
         # Now add constraints
         for vertex1, vertex2 in self.edges:
             self.add_constraint(GraphColoringConstraint(vertex1, vertex2))

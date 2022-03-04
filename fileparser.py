@@ -1,3 +1,4 @@
+from collections import defaultdict
 
 
 class FileParser:
@@ -7,7 +8,7 @@ class FileParser:
     
     def parse_file(self) -> dict:
         """Method to parse a graph coloring problem input file"""
-        # Use set to remove duplicate edges
+        neighbors = defaultdict(set)
         edges = []
         csp_payload = {}
         with open(self.filepath, "r") as file:
@@ -20,8 +21,12 @@ class FileParser:
                     csp_payload["colors"] = int(line.split('=')[-1].strip())
                 else:
                     # Edge line
-                    edges.append(tuple(sorted(int(element.strip()) for element in line.strip().split(','))))
+                    edge = tuple(sorted(int(element.strip()) for element in line.strip().split(',')))
+                    edges.append(edge)
+                    neighbors[edge[0]].add(edge[1])
+                    neighbors[edge[1]].add(edge[0])
         csp_payload["edges"] = edges
+        csp_payload["neighbors"] = neighbors
         return csp_payload
 
 if __name__ == "__main__":
