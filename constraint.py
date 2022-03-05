@@ -52,12 +52,10 @@ class CSPBase(ABC):
         self.neighbors = neighbors
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
         self.arcs = self.get_arcs()
-        self.assignment = None
-        self.current_domains = deepcopy(self.domains)
+        self.assignment = {}
+        self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         self.assignment_counts = 0
-        # self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
-        # self.constraints_func = lambda A, a, B, b: a != b
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.assignment}>"
     
