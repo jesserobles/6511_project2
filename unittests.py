@@ -1,13 +1,14 @@
 import os
 import unittest
 
+from backtracking import backtracking_search
 from graphcoloring import GraphColoringCSP
 from fileparser import FileParser
 from heuristics import lcv, mrv
-from inference import forward_checking
+from inference import ac3, forward_checking, maintain_arc_consistency, no_inference, revise
 
 class TestFileParser(unittest.TestCase):
-
+    """Test cases for the FileParser class"""
     def test_file_parser(self):
         """
         Unit test for parsing an input file and comparing the output
@@ -47,6 +48,7 @@ class TestGraphColoringCSP(unittest.TestCase):
 
 
 class TestHeuristics(unittest.TestCase):
+    """Test cases for the heuristics (lcv, mrv)"""
     def test_lcv(self):
         """
         Unit test for least constraining value. We'll use the explanation from the textbook
@@ -76,7 +78,10 @@ class TestHeuristics(unittest.TestCase):
         # assignment = {0: 0, 1: 1}
         variable = mrv(csp, assignment)
         self.assertEqual(variable, 2, f"MRV heuristic failed: expected 2, got {variable}")
-    
+
+
+class TestInference(unittest.TestCase):
+    """Test cases for inference methods: forward checking, maintaining arc consistency with ac3"""
     def test_forward_checking(self):
         """
         Unit test for forward checking. We continue using the Australia problem, with the forward
@@ -84,34 +89,110 @@ class TestHeuristics(unittest.TestCase):
         Territories are donoted as 0: WA, 1: NT, 2: SA, 3: Q, 4: NSW, 5: V, 6: T
         Colors are donoted by 0: 'red', 1: 'green', 2: 'blue'
         """
-        assignment = {}
         csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
-        consistent = forward_checking(csp, 0, 0, assignment) # WA=red
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=0, assignment=assignment) # WA=red
         self.assertTrue(consistent)
         # After this assignment, domains should be {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
 
-        consistent = forward_checking(csp, 3, 1, assignment) # Q=green
+        variable = 3
+        value = 1
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=variable, assignment=assignment) # Q=green
         self.assertTrue(consistent)
         # After this assignment, domains should be {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
-
-        consistent = forward_checking(csp, 5, 2, assignment) # V=blue
-        # After this assignment, the solution is inconsisten, and domains should be {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
+        
+        variable = 5
+        value = 2
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=variable, assignment=assignment) # V=blue
+        # After this assignment, the solution is inconsisten,t and domains should be {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
         self.assertFalse(consistent)
         expected_domains = {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
+    
+    def test_revise(self):
+        """
+        Unit test for the revise function. We want to ensure that this function doesn't revise if no conflicts
+        exist, but does revise the domain if it encounters a conflict.
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        revised = revise(csp, 0, 1)
+        print(revised)
+        revised = revise(csp, 0, 2)
 
+    # def test_ac3(self):
+    #     """Unit test for ac3 inference"""
+    #     csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+    #     assignment = {}
+    #     # Initially ac3 won't prune anything
+    #     consistent = ac3(csp, queue=None) # ac3 will build the queue of all arcs
+    #     self.assertTrue(consistent)
+    #     # Start with assignment WA=red ({0: 0})
+    #     variable = 0
+    #     value = 0
+    #     csp.assign(variable, value, assignment)
+    #     csp.add_assignment(variable, value)
+    #     queue = set() # only the arcs (Xj,Xi) for all Xj that are unassigned variables that are neighbors of Xi
+    #     for x in csp.neighbors[variable]:
+    #         if not x in assignment:
+    #             queue.add((x, variable))
+    #             queue.add((variable, x)) # Each binary constraint becomes two arcs, one in each direction.
+    #     consistent = ac3(csp, queue)
+    #     self.assertTrue(consistent)
+    #     # We assigned {0: 0}, which has neighbors 1 and 2, so we expect the domains for 1 and 2 to not have 0 in them
+    #     expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+    #     self.assertEqual(csp.current_domains, expected_domains)
+        
+    
+    # def test_maintain_arc_consistency(self):
+    #     """
+    #     Unit test for maintaining arc consistency. We continue using the Australia problem.
+    #     """
+    #     csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+    #     assignment = {0: 0, 3: 1}
+    #     csp.add_assignments(assignment)
+    #     consistent = maintain_arc_consistency(csp, variable=1, assignment=assignment) # WA=red
+        # self.assertTrue(consistent)
+        # # After this assignment, domains should be {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        # expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        # self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
 
+class TestBacktracking(unittest.TestCase):
+    """"""
+    def test_backtracking_search(self):
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        # filepath = os.path.join(folder, "australia.txt")
+        # csp = csp = GraphColoringCSP.from_file(filepath)
+        # solution = backtracking_search(csp, verbose=False)
+        # self.assertIsNotNone(solution, "Search returned no solution, although solution exists")
+        for ix, file in enumerate(files):
+            # print(f"Checking file {ix + 1} of {len(files)}: {file}")
+            filepath = os.path.join(folder, file)
+            csp = csp = GraphColoringCSP.from_file(filepath)
+            solution = backtracking_search(csp, verbose=False, inference=forward_checking)
+            if not solution:
+                print(file)
+            self.assertIsNotNone(solution, f"Search returned no solution for file {ix} of {len(files)}, although solution exists")
 
-class TestInference(unittest.TestCase):
-    def test_forward_checking(self):
-        pass
-
-    def test_maintain_arc_consistency(self):
-        pass
     
 
 if __name__ == "__main__":

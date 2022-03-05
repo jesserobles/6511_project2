@@ -1,9 +1,7 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 from copy import deepcopy
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set, Union
-
-from sklearn import neighbors
 
 from utils import count_trues
 
@@ -51,18 +49,12 @@ class CSPBase(ABC):
         self.domains = domains
         self.neighbors = neighbors
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
-        self.arcs = self.get_arcs()
         self.assignment = {}
         self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         self.assignment_counts = 0
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.assignment}>"
-    
-    def support_pruning(self):
-        """Method to initialize the current domains during search"""
-        if self.current_domains is None:
-            self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
 
     def add_constraint(self, constraint: ConstraintBase) -> None:
         for variable in constraint.variables:
@@ -87,6 +79,7 @@ class CSPBase(ABC):
         """Start accumulating inferences from assuming var=value."""
         removals = [(var, a) for a in self.current_domains[var] if a != value]
         self.current_domains[var] = [value]
+        self.assignment.update({var: value})
         return removals
     
     def add_assignments(self, assignments):
@@ -99,6 +92,11 @@ class CSPBase(ABC):
     def assign(self, variable, value, assignment):
         assignment[variable] = value
         self.assignment_counts += 1
+    
+    def unassign(self, variable, assignment):
+        """Remove {variable: value} from assignment."""
+        if variable in assignment:
+            del assignment[variable]
 
     def restore(self, removals):
         """Undo a supposition and all inferences from it."""
@@ -108,11 +106,6 @@ class CSPBase(ABC):
     def choices(self, variable):
         """Return all values for var that aren't currently ruled out."""
         return (self.current_domains or self.domains)[variable]
-
-    def get_arcs(self):
-        a = set([tuple(edge.variables) for edges in self.constraints.values() for edge in edges])
-        a.update([(v[-1], v[0]) for v in a])
-        return deque(a)
     
     def prune(self, var, value, removals=None):
         """Rule out var=value."""
@@ -120,12 +113,17 @@ class CSPBase(ABC):
         if removals is not None:
             removals.append((var, value))
     
+    def add_inferences(self, inferences):
+        """
+        Method to add inferences to the csp during the backtracking search
+            inferences - a dictionary representing...
+        """
+
     def count_conflicts(self, var, val, assignment):
         """Return the number of conflicts var=val has with other variables already assigned (in assignment)
         constraints A function f(A, a, B, b) that returns true if neighbors
                     A, B satisfy the constraint when they have values {A:a}, {B:b}
         """
-    
         # We are checking if assigning var = val will cause csp.is_consistent to return False
         count = 0
         temp_assignment = assignment.copy()
@@ -134,3 +132,6 @@ class CSPBase(ABC):
             if v in assignment and not self.is_consistent(v, temp_assignment): # Check if the assignment causes any conflicts with 
                 count += 1
         return count
+
+    def is_complete(self, assignment):
+        return len(assignment) == len(self.variables)

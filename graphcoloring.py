@@ -46,7 +46,6 @@ class GraphColoringCSP(CSPBase):
         self.edges = edges
         self.neighbors = neighbors
         # Maintain list of arcs on object to improve speed
-        self.arcs = deque(set(list(self.edges) + [(v[-1], v[0]) for v in self.edges]))
         self.colors = colors
         vertices = set(vertex for edge in edges for vertex in edge)
         domains = {vertex: list(range(colors)) for vertex in vertices}
@@ -54,6 +53,7 @@ class GraphColoringCSP(CSPBase):
         # Now add constraints
         for vertex1, vertex2 in self.edges:
             self.add_constraint(GraphColoringConstraint(vertex1, vertex2))
+        self.constraints_func = lambda A, a, B, b: a != b
 
     @classmethod
     def from_file(cls, filepath) -> CSPBase:

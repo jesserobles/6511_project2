@@ -15,13 +15,13 @@ def static_ordering(csp, assignment):
     unassigned_variables = [variable for variable in csp.variables if variable not in assignment]
     return unassigned_variables[0]
 
-def mrv(csp, assignment):
-    """Minimum-remaining-values heuristic: Choose the variable with the fewest remaining "legal" values"""
-    unassigned_variables = sorted(
-        [(variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])) for variable in csp.variables if variable not in assignment],
-        key=lambda x: (x[1], x[2])
-    )
-    return unassigned_variables[0][0]
+# def mrv(csp, assignment):
+#     """Minimum-remaining-values heuristic: Choose the variable with the fewest remaining "legal" values"""
+#     unassigned_variables = sorted(
+#         [(variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])) for variable in csp.variables if variable not in assignment],
+#         key=lambda x: (x[1], x[2])
+#     )
+#     return unassigned_variables[0][0]
 
 
 # Heuristics for value ordering
@@ -43,7 +43,6 @@ def lcv(csp, variable, assignment):
     return sorted(csp.current_domains[variable], key=lambda value: csp.count_conflicts(variable, value, assignment))
 
 
-
 def shuffled(iterable):
     """Randomly shuffle a copy of iterable."""
     items = list(iterable)
@@ -62,4 +61,9 @@ def remaining_legal_values(csp, variable, assignment):
         return len(csp.current_domains[variable])
     else:
         return count_trues(csp.count_conflicts(variable, value, assignment) == 0 for value in csp.domains[variable])
+
+def mrv(csp, assignment):
+    """Minimum-remaining-values heuristic."""
+    return argmin_random_tie([v for v in csp.variables if v not in assignment],
+                             key=lambda var: remaining_legal_values(csp, var, assignment))
 
