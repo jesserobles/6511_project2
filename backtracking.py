@@ -1,11 +1,12 @@
 from sortedcollections import SortedSet
 
-from ac3 import ac3
 from constraint import CSPBase
 from heuristics import static_ordering, mrv, lcv
+from inference import maintain_arc_consistency
 
 """
-The functions in this modules are based on the algorithms as described in the textbook:
+The functions in this modules are based on the algorithms as described in class
+slides and in the textbook:
 Artificial Intelligence: A Modern Approach (Prentice Hall 2020)
 
 function BACKTRACKING-SEARCH(csp) returns a solution or failure
@@ -27,30 +28,6 @@ function BACKTRACK(csp, assignment) returns a solution or failure
     return failure
 """
 
-
-
-def no_inference(csp, variable, assignment):
-    return True
-
-def forward_checking(csp, variable, value, assignment, removals):
-    """Prune neighbor values inconsistent with var=value.
-    Whenever a variable X is assigned, the forward-checking process establishes arc consistency 
-    for it: for each unassigned variable Y that is connected to X by a constraint, delete from 
-    Y's domain any value that is inconsistent with the value chosen for X
-    """
-    for neighbor in csp.neighbors[variable]:
-        if neighbor not in assignment:
-            for value in csp.current_domains[neighbor][:]:
-                if not csp.constraints(variable, value, neighbor, value): # TODO: change this to use is_consistent
-                    csp.prune(neighbor, value, removals)
-            if not csp.current_domains[neighbor]:
-                return False
-    return True
-
-
-def maintain_arc_consistency(csp, variable, removals, constraint_propagation=ac3):
-    """Maintain arc consistency."""
-    return constraint_propagation(csp, queue={(x, variable) for x in csp.neighbors[variable]}, removals=removals)
 
 
 def dom_j_up(csp, queue):
@@ -77,7 +54,7 @@ def backtrack(csp, assignment: dict, select_unassigned_variable, order_domain_va
         if csp.is_consistent(variable, temp_assignment):
             # add {var = value} to assignment
             csp.assign(variable, value, assignment)
-            removals = csp.suppose(variable, value)
+            removals = csp.add_assingment(variable, value)
             # inferences <- INFERENCE(csp, var, assignment)
             inferences = inference(csp, variable, assignment)
             # if inferences != failure then

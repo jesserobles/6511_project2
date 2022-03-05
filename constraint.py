@@ -53,7 +53,7 @@ class CSPBase(ABC):
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
         self.arcs = self.get_arcs()
         self.assignment = None
-        self.current_domains = None
+        self.current_domains = deepcopy(self.domains)
         self.assignment_counts = 0
         # self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         # self.constraints_func = lambda A, a, B, b: a != b
@@ -84,13 +84,19 @@ class CSPBase(ABC):
             if not constraint.is_satisfied(assignment):
                 return False
         return True
-    
 
-    def suppose(self, var, value):
+    def add_assignment(self, var, value):
         """Start accumulating inferences from assuming var=value."""
         removals = [(var, a) for a in self.current_domains[var] if a != value]
         self.current_domains[var] = [value]
         return removals
+    
+    def add_assignments(self, assignments):
+        removals = []
+        for var, value in assignments.items():
+            removals.append(self.add_assignment(var, value))
+        return removals
+
 
     def assign(self, variable, value, assignment):
         assignment[variable] = value
@@ -110,7 +116,7 @@ class CSPBase(ABC):
         a.update([(v[-1], v[0]) for v in a])
         return deque(a)
     
-    def prune(self, var, value, removals):
+    def prune(self, var, value, removals=None):
         """Rule out var=value."""
         self.current_domains[var].remove(value)
         if removals is not None:
@@ -130,38 +136,3 @@ class CSPBase(ABC):
             if v in assignment and not self.is_consistent(v, temp_assignment): # Check if the assignment causes any conflicts with 
                 count += 1
         return count
-
-    # def nconflicts(self, var, val, assignment):
-    #     """Return the number of conflicts var=val has with other variables."""
-
-    #     # Subclasses may implement this more efficiently
-    #     def conflict(var2):
-    #         return var2 in assignment and not self.constraints_func(var, val, var2, assignment[var2])
-    #     return count_trues([v in assignment and not self.constraints_func(var, val, v, assignment[v]) for v in self.neighbors[var]])
-    
-    def backtracking_search(self, assignment: dict = {}):
-        """
-        Recursive backtracking search algorithm
-        """
-        if len(self.variables) == len(assignment):
-            # Base case. All assignments have been done, return it
-            return assignment
-        # Otherwise, we handle the unassigned variables
-        unassigned_variables = [variable for variable in self.variables if variable not in assignment]
-        first_unassigned = unassigned_variables[0]
-        # Loop through the values in the first unassigned variable's domain
-        for value in self.domains[first_unassigned]:
-            # Try assigning the value to each variable.
-            # First make a copy of the assignment, then set the value
-            temp_assignment = assignment.copy()
-            temp_assignment[first_unassigned] = value
-            # Check if assignment is consistent
-            if self.is_consistent(first_unassigned, temp_assignment):
-                # If consistent continue searching using the assignment
-                result = self.backtracking_search(temp_assignment)
-                if result is not None:
-                    self.assignment = result
-                    return result
-        return None
-
-

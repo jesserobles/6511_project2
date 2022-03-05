@@ -18,6 +18,9 @@ class GraphColoringConstraint(ConstraintBase):
         self.vertex1 = vertex1
         self.vertex2 = vertex2
     
+    def __repr__(self) -> str:
+        return f"<Constraint: [vertex1: {self.vertex1}, vertex2: {self.vertex2}]>"
+    
     def is_satisfied(self, assignment: dict) -> bool:
         """
         Returns whether neighbors A, B satisfy the constraint when they have values A=a, B=b.
