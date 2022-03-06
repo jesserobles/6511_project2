@@ -70,6 +70,7 @@ def backtrack(csp, assignment: dict, select_unassigned_variable, order_domain_va
     return None
 
 def print_problem(variable_heuristic, value_heuristic, inference):
+    print("CSP problem attributes: ")
     for type_, function in {"Variable ordering heuristic": variable_heuristic, "Value ordering heuristic": value_heuristic, "Inference type": inference}.items():
-        print(f"{type_} -> {function.__name__}")
+        print(f"\t{type_} -> {function.__name__}")
     print()
