@@ -5,7 +5,7 @@ from backtracking import backtracking_search
 from graphcoloring import GraphColoringCSP
 from fileparser import FileParser
 from heuristics import lcv, mrv, static_ordering, unordered_domain_values
-from inference import ac3, forward_checking, maintain_arc_consistency, no_inference, revise
+from inference import ac3, forward_checking, maintain_arc_consistency, revise
 
 class TestFileParser(unittest.TestCase):
 
@@ -101,7 +101,7 @@ class TestInference(unittest.TestCase):
         csp.add_inferences(inferences)
         # After this assignment, domains should be {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-        self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
+        self.assertEqual(csp.domains, expected_domains, "Unexpected domain values in forward checking")
 
         # Q=green
         variable = 3
@@ -113,7 +113,7 @@ class TestInference(unittest.TestCase):
         csp.add_inferences(inferences)
         # After this assignment, domains should be {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-        self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
+        self.assertEqual(csp.domains, expected_domains, "Unexpected domain values in forward checking")
         
         # V=blue
         variable = 5
@@ -143,7 +143,7 @@ class TestInference(unittest.TestCase):
         for Xi, Xj in queue:
             revised = revise(csp, Xi, Xj)
             csp.add_inferences({Xi: revised})
-        self.assertEqual(csp.current_domains, expected_domains)
+        self.assertEqual(csp.domains, expected_domains)
 
 
     def test_ac3(self):
@@ -161,7 +161,7 @@ class TestInference(unittest.TestCase):
         queue = [(x, variable) for x in csp.neighbors[variable]]
         inferences = ac3(csp, queue)
         csp.add_inferences(inferences)
-        self.assertEqual(csp.current_domains, expected_domains)
+        self.assertEqual(csp.domains, expected_domains)
     
     def test_maintain_arc_consistency(self):
         """
@@ -176,7 +176,7 @@ class TestInference(unittest.TestCase):
         inferences = maintain_arc_consistency(csp, variable, assignment)
         csp.add_inferences(inferences)
         expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-        self.assertEqual(csp.current_domains, expected_domains)
+        self.assertEqual(csp.domains, expected_domains)
 
 
     
@@ -184,27 +184,6 @@ class TestBacktracking(unittest.TestCase):
     """
     Unit tests for backtracking search. These tests are executed on the test files (more than just the Australia example)
     """
-
-    def test_backtracking_search_no_inference(self):
-        """
-        Unit test for backtracking search with no inference
-        """
-        folder = os.path.join("assets", "input_files")
-        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
-        no_solution = "gc_78317097930401.txt"
-        for ix, file in enumerate(files):
-            filepath = os.path.join(folder, file)
-            csp = GraphColoringCSP.from_file(filepath)
-            solution = backtracking_search(csp, verbose=False, 
-                # select_unassigned_variable=static_ordering,
-                # order_domain_values=unordered_domain_values,
-                inference=no_inference
-            )
-            if file == no_solution:
-                self.assertIsNone(solution)
-            if solution:
-                self.assertTrue(csp.valid_solution(solution))
-
     def test_backtracking_search_forward_checking(self):
         """
         Unit test for backtracking search with forward checking

@@ -18,6 +18,8 @@ optional arguments:
   -inf {mac,fc,none}, --inference {mac,fc,none}
                         Inference method
 ```
+## A note on file `gc_1377121623225900.txt`
+This large file is excluded from the unit tests and the default `main.py` execution because it takes a very long time to run, even using the mrv and lcv heuristics and maintaining arc consistency. I ran this file, and it took `1:54:36.671057` and the search found no solution.
 
 # Running unit tests
 To run unit tests, run `python unittests.py`. This will simply print out how many tests it ran, and `OK` if all tests passed, and `FAILURE` and cause of the failure(s) otherwise. The unit tests test out the different variable and value ordering heuristics (mrv, lcv), inference methods (forward checking, maintaining arc consistency with ac3), and backtracking search for several combinations of these.

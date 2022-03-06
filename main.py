@@ -5,15 +5,18 @@ from time import time
 from backtracking import backtracking_search
 from graphcoloring import GraphColoringCSP
 from heuristics import lcv, mrv, static_ordering, unordered_domain_values
-from inference import forward_checking, maintain_arc_consistency, no_inference
+from inference import forward_checking, maintain_arc_consistency
 
 def solve(input_file, **kwargs):
     csp = GraphColoringCSP.from_file(input_file)
+    start = time()
     solution = backtracking_search(csp, 
         select_unassigned_variable=kwargs['select_unassigned_variable'],
         order_domain_values=kwargs['order_domain_values'],
         inference=kwargs['inference']
     )
+    end = time()
+    print(f'\nElapsed time: {timedelta(seconds=end-start)}\n')
     return solution
 
 if __name__ == "__main__":
@@ -34,7 +37,7 @@ if __name__ == "__main__":
                     help="Value ordering heuristic",
                     default="lcv")
     parser.add_argument('-inf', '--inference',
-                    choices=['mac', 'fc', 'none'],
+                    choices=['mac', 'fc'],
                     help="Inference method",
                     default="mac")
     
@@ -53,7 +56,6 @@ if __name__ == "__main__":
     }
 
     inference_methods = {
-        'none': no_inference,
         'fc': forward_checking,
         'mac': maintain_arc_consistency
     }

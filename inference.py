@@ -6,9 +6,6 @@ This module contains the inference functions and supporting utilities. These fun
 and return either the string 'failure
 """
 
-def no_inference(*args):
-    return {}
-
 def forward_checking(csp, variable, assignment):
     """Prune neighbor values inconsistent with var=value.
     Whenever a variable X is assigned, the forward-checking process establishes arc consistency 
@@ -19,17 +16,17 @@ def forward_checking(csp, variable, assignment):
     value = assignment[variable]
     for neighbor in csp.neighbors[variable]:
         if neighbor not in assignment: # Only consider unassigned variables
-            for y in csp.current_domains[neighbor]: 
+            for y in csp.domains[neighbor]: 
                 # Check if the assignment is consistent with the current domain value
                 if not csp.constraint_function(variable, value, neighbor, y):
                     inferences[neighbor].append(value)
-            # if not csp.current_domains[neighbor]:
+            # if not csp.domains[neighbor]:
             if empty_domain(csp, neighbor, inferences):
                 return 'failure'
     return inferences
 
 def empty_domain(csp, variable, inferences):
-    return len([value for value in csp.current_domains[variable] if not value in inferences[variable]]) == 0
+    return len([value for value in csp.domains[variable] if not value in inferences[variable]]) == 0
 
 def ac3(csp, queue=None):
     """
@@ -62,9 +59,9 @@ def ac3(csp, queue=None):
 
 def revise(csp, Xi, Xj):
     revised = []
-    for x in csp.current_domains[Xi]:
+    for x in csp.domains[Xi]:
         value_exists = False # if no value y in Dj allows (x,y) to satisfy the constraint between Xi and Xj
-        for y in csp.current_domains[Xj]:
+        for y in csp.domains[Xj]:
             if csp.constraint_function(Xi, x, Xj, y): # If this is true then a value exists, so no revision
                 value_exists = True
                 break
@@ -73,7 +70,7 @@ def revise(csp, Xi, Xj):
     return revised
 
 def dom_j_up(csp, queue):
-    return sorted(queue, key=lambda t: -(len(csp.current_domains[t[1]])))
+    return sorted(queue, key=lambda t: -(len(csp.domains[t[1]])))
 
 def maintain_arc_consistency(csp, variable, assignment, constraint_propagation=ac3, ordering_heuristic=None):
     """Maintain arc consistency."""

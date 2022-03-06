@@ -32,7 +32,7 @@ function BACKTRACK(csp, assignment) returns a solution or failure
 
 def dom_j_up(csp, queue):
     """Order by increasing size of the domain of the variables"""
-    return SortedSet(queue, key=lambda t: -len(csp.current_domains[t[1]]))
+    return SortedSet(queue, key=lambda t: -len(csp.domains[t[1]]))
 
 
 def backtracking_search(csp, verbose=True, select_unassigned_variable=mrv, order_domain_values=lcv, inference=maintain_arc_consistency):

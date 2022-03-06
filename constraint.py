@@ -1,5 +1,4 @@
-from collections import defaultdict, deque
-from copy import deepcopy
+from collections import defaultdict
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set, Union
 
@@ -32,7 +31,6 @@ class CSPBase(ABC):
         self.domains = domains
         self.neighbors = neighbors
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
-        self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         self.assignment_counts = 0
 
     def __repr__(self) -> str:
@@ -66,8 +64,8 @@ class CSPBase(ABC):
 
     def add_assignment(self, var, value):
         """Start accumulating inferences from assuming var=value."""
-        removals = [(var, a) for a in self.current_domains[var] if a != value]
-        self.current_domains[var] = [value]
+        removals = [(var, a) for a in self.domains[var] if a != value]
+        self.domains[var] = [value]
         return removals
     
     def add_assignments(self, assignments):
@@ -83,21 +81,21 @@ class CSPBase(ABC):
     def restore(self, removals):
         """Undo a supposition and all inferences from it."""
         for B, b in removals:
-            self.current_domains[B].append(b)
+            self.domains[B].append(b)
     
     def add_inferences(self, inferences):
         for variable, values in inferences.items():
             for value in values:
-                self.current_domains[variable].remove(value)
+                self.domains[variable].remove(value)
 
     def remove_inferences(self, inferences):
         for variable, values in inferences.items():
             for value in values:
-                self.current_domains[variable].append(value)
+                self.domains[variable].append(value)
 
     def prune(self, var, value, removals=None):
         """Rule out var=value."""
-        self.current_domains[var].remove(value)
+        self.domains[var].remove(value)
         if removals is not None:
             removals.append((var, value))
     
@@ -116,6 +114,8 @@ class CSPBase(ABC):
     
     def valid_solution(self, assignment):
         """The goal is to assign all variables, with all constraints satisfied."""
+        if not assignment:
+            return False
         return (len(assignment) == len(self.variables)
                 and all(self.count_conflicts(variables, assignment[variables], assignment) == 0
                         for variables in self.variables))
