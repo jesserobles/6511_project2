@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from backtracking import backtracking_search
+from backtracking import backtracking_search, backtracking_search_no_inference
 from graphcoloring import GraphColoringCSP
 from fileparser import FileParser
 from heuristics import lcv, mrv, static_ordering, unordered_domain_values
@@ -184,6 +184,24 @@ class TestBacktracking(unittest.TestCase):
     """
     Unit tests for backtracking search. These tests are executed on the test files (more than just the Australia example)
     """
+    def test_backtracking_search_no_inference(self):
+        """
+        Unit test for backtracking search without inference.
+        This is implemented in a slightly different way via the 
+        backtracking_search_no_inference method
+        """
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        no_solution = "gc_78317097930401.txt"
+        for file in files:
+            filepath = os.path.join(folder, file)
+            csp = GraphColoringCSP.from_file(filepath)
+            solution = backtracking_search(csp, verbose=False, select_unassigned_variable=mrv, inference=None) # Using MRV because one of the files takes too long
+            if file == no_solution:
+                self.assertIsNone(solution)
+            else:
+                self.assertTrue(csp.valid_solution(solution))
+    
     def test_backtracking_search_forward_checking(self):
         """
         Unit test for backtracking search with forward checking
@@ -191,7 +209,7 @@ class TestBacktracking(unittest.TestCase):
         folder = os.path.join("assets", "input_files")
         files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
         no_solution = "gc_78317097930401.txt"
-        for ix, file in enumerate(files):
+        for file in files:
             filepath = os.path.join(folder, file)
             csp = GraphColoringCSP.from_file(filepath)
             solution = backtracking_search(csp, verbose=False, inference=forward_checking)
@@ -207,7 +225,7 @@ class TestBacktracking(unittest.TestCase):
         folder = os.path.join("assets", "input_files")
         files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
         no_solution = "gc_78317097930401.txt"
-        for ix, file in enumerate(files):
+        for file in files:
             filepath = os.path.join(folder, file)
             csp = GraphColoringCSP.from_file(filepath)
             solution = backtracking_search(csp, verbose=False, inference=maintain_arc_consistency)

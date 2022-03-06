@@ -37,7 +37,7 @@ if __name__ == "__main__":
                     help="Value ordering heuristic",
                     default="lcv")
     parser.add_argument('-inf', '--inference',
-                    choices=['mac', 'fc'],
+                    choices=['mac', 'fc', 'none'],
                     help="Inference method",
                     default="mac")
     
