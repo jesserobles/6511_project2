@@ -215,37 +215,25 @@ class TestBacktracking(unittest.TestCase):
             solution = backtracking_search(csp, verbose=False, inference=forward_checking)
             if file == no_solution:
                 self.assertIsNone(solution)
-            if solution:
-                self.assertTrue(csp.valid_solution(solution))
             else:
-                print(file)
+                self.assertTrue(csp.valid_solution(solution))
     
-#     def test_backtracking_search_mac(self):
-#         """
-#         Unit test for backtracking search with maintaining arc consistency using ac3
-#         """
-#         folder = os.path.join("assets", "input_files")
-#         files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
-#         # filepath = os.path.join(folder, "australia.txt")
-#         # csp = csp = GraphColoringCSP.from_file(filepath)
-#         # solution = backtracking_search(csp, verbose=False)
-#         # self.assertIsNotNone(solution, "Search returned no solution, although solution exists")
-#         no_solution = "gc_78317097930401.txt"
-#         solutions = []
-#         for ix, file in enumerate(files):
-#             filepath = os.path.join(folder, file)
-#             csp = GraphColoringCSP.from_file(filepath)
-#             # print(f"File {ix}")
-#             solution = backtracking_search(csp, verbose=False, inference=maintain_arc_consistency)
-#             solutions.append(solution)
-#             # if not solution:
-#             #     print(file)
-#             if solution and not csp.valid_solution(solution):
-#                 print("INVALID")
-#             # if file == no_solution:
-#             #     self.assertIsNone(solution, f"Search returned solution for file {file}, although no solution exists")
-#             # else:
-#             #     self.assertIsNotNone(solution, f"Search returned no solution for file {file}, although a solution exists")
+    def test_backtracking_search_mac(self):
+        """
+        Unit test for backtracking search with maintaining arc consistency using ac3
+        """
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        no_solution = "gc_78317097930401.txt"
+        for ix, file in enumerate(files):
+            filepath = os.path.join(folder, file)
+            csp = GraphColoringCSP.from_file(filepath)
+            solution = backtracking_search(csp, verbose=False, inference=maintain_arc_consistency)
+            if file == no_solution:
+                self.assertIsNone(solution, f"Search returned solution for file {file}, although no solution exists")
+            else:
+                self.assertIsNotNone(solution, f"Search returned no solution for file {file}, although a solution exists")
+                self.assertTrue(csp.valid_solution(solution))
 
 if __name__ == "__main__":
     unittest.main()

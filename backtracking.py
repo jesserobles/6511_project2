@@ -58,7 +58,7 @@ def backtrack(csp, assignment: dict, select_unassigned_variable, order_domain_va
             # inferences <- INFERENCE(csp, var, assignment)
             inferences = inference(csp, variable, assignment)
             # if inferences != failure then
-            if inferences != "failure":
+            if inferences != 'failure':
                 # add inferences to csp
                 csp.add_inferences(inferences)
                 # result <- BACKTRACK(csp, assignment)

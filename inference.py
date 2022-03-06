@@ -25,7 +25,7 @@ def forward_checking(csp, variable, assignment):
                     inferences[neighbor].append(value)
             # if not csp.current_domains[neighbor]:
             if empty_domain(csp, neighbor, inferences):
-                return "failure" # Failure, return falsey value (empty dictionary)
+                return 'failure'
     return inferences
 
 def empty_domain(csp, variable, inferences):
@@ -44,21 +44,24 @@ def ac3(csp, queue=None):
             for each Xk in NEIGHBORS[Xi] do
                 add (Xk, Xi) to queue
     """
+    inferences = defaultdict(list)
     if queue is None:
         queue = {(Xi, Xk) for Xi in csp.variables for Xk in csp.neighbors[Xi]}
     while queue:
         xi, xj = queue.pop()
-        if revise(csp, xi, xj):
-            if len(csp.current_domains[xi]) == 0:
-                return False # CSP is inconsistent
+        revised = revise(csp, xi, xj)
+        if revised:
+            inferences[xi].extend(revised)
+            if empty_domain(csp, xi, inferences):
+                return 'failure'
             for xk in csp.neighbors[xi]:
                 if xk != xj:
                     queue.append((xk, xi))
-    return True # CSP is consistent
+    return inferences
 
 
 def revise(csp, Xi, Xj):
-    revised = False
+    revised = []
     for x in csp.current_domains[Xi]:
         value_exists = False # if no value y in Dj allows (x,y) to satisfy the constraint between Xi and Xj
         for y in csp.current_domains[Xj]:
@@ -66,57 +69,16 @@ def revise(csp, Xi, Xj):
                 value_exists = True
                 break
         if not value_exists: # No value satisfies the constraint, so remove it
-            csp.prune(Xi, x)
-            revised = True
+            revised.append(x)
     return revised
-
-# def ac3(csp, queue=None):
-#     """
-#     Psuedocode from text/slides:
-
-#     function AC-3(csp) returns the CSP, possibly with reduced domains
-#         inputs: csp, a binary CSP with variables {X1, X2, ... , Xn}
-#         local variables: queue, a queue of arcs, initially all the arcs in csp, subsequently only the arcs (Xj,Xi) for all Xj that are unassigned variables that are neighbors of Xi
-#         while queue is not empty do
-#             (Xi, Xj) <- REMOVE-FIRST(queue)
-#             if REVISE(Xi, Xj) then
-#             for each Xk in NEIGHBORS[Xi] do
-#                 add (Xk, Xi) to queue
-#     """
-#     inferences = defaultdict(list)
-#     if queue is None:
-#         queue = {(Xi, Xk) for Xi in csp.variables for Xk in csp.neighbors[Xi]}
-#     while queue:
-#         xi, xj = queue.pop()
-#         revised = revise(csp, xi, xj)
-#         if revised:
-#             if len(csp.current_domains[xi]) == 0:
-#                 return False # CSP is inconsistent
-#             for xk in csp.neighbors[xi]:
-#                 if xk != xj:
-#                     queue.append((xk, xi))
-#     return True # CSP is consistent
-
-# def revise(csp, Xi, Xj):
-#     revised = []
-#     for x in csp.current_domains[Xi]:
-#         value_exists = False # if no value y in Dj allows (x,y) to satisfy the constraint between Xi and Xj
-#         for y in csp.current_domains[Xj]:
-#             if csp.constraint_function(Xi, x, Xj, y): # If this is true then a value exists, so no revision
-#                 value_exists = True
-#                 break
-#         if not value_exists:
-#             revised.append(x)
-#     return revised
-
 
 def dom_j_up(csp, queue):
     return sorted(queue, key=lambda t: -(len(csp.current_domains[t[1]])))
 
-def maintain_arc_consistency(csp, variable, assignment, removals=None, constraint_propagation=ac3, ordering_heuristic=None):
+def maintain_arc_consistency(csp, variable, assignment, constraint_propagation=ac3, ordering_heuristic=None):
     """Maintain arc consistency."""
     queue = [(x, variable) for x in csp.neighbors[variable]]
     # queue.extend([(variable, x) for x in csp.neighbors[variable]])
     if ordering_heuristic:
         queue = ordering_heuristic(csp, queue)
-    return constraint_propagation(csp, queue=queue, removals=removals)
+    return constraint_propagation(csp, queue=queue)
