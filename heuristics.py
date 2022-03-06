@@ -1,9 +1,17 @@
+"""
+This module contains the variable and value ordering heuristics. The variable ordering heuristics have the signature
+    function(csp, assignment)
+and return the first value based on the ordering.
+The value selection heuristic functions have the signature
+    function(csp, variable, assignment)
+and return a list of domain values sorted based on the ordering heuristic.
+"""
 
 # Heuristics for variable ordering
 
 def static_ordering(csp, assignment):
     """
-    Method to return an assignment.
+    Funtion to return an unassigned variable without ordering.
     Simplest method is to just return the first unassigned variable.
     """
     unassigned_variables = [variable for variable in csp.variables if variable not in assignment]
@@ -11,7 +19,8 @@ def static_ordering(csp, assignment):
 
 def mrv(csp, assignment):
     """
-    Minimum-remaining-values heuristic: Choose the variable with the fewest remaining "legal" values.
+    Implementation of the Minimum-Remaining-Values heuristic for ordering variables: 
+        Choose the variable with the fewest remaining "legal" values.
     This implementation incorporates the tie breaking rule.
     """
     unassigned_variables = []
@@ -28,13 +37,14 @@ def mrv(csp, assignment):
 
 def unordered_domain_values(csp, variable, assignment):
     """
-    Method to order the values.
+    Function to return values without ordering them.
     Simplest method is to just return the values in whatever order they are in.
     """
     return csp.domains[variable]
 
 def lcv(csp, variable, assignment):
     """
-    Least constraining value heuristic. We just sort by how many conflicts the assignment creates in ascending order.
+    Implementation of the Least Constraining Value heuristic to order values.
+    We just sort by how many conflicts the assignment creates in ascending order.
     """
     return sorted(csp.domains[variable], key=lambda value: csp.count_conflicts(variable, value, assignment))

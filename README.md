@@ -1,6 +1,6 @@
 # Graph Coloring CSP
 
-This repo contains the code for CS6511 Project 2 for Spring 2022. There are several example input files in the `assets/input_files` folder.
+This repo contains the code for CS6511 Project 2 for Spring 2022. There are several example input files in the `assets/input_files` folder, which were taken from the example files located in the class [repo](https://github.com/amrinderarora/ai/tree/master/src/main/resources/csp/coloring).
 
 # Running the code on an input file
 
@@ -18,7 +18,7 @@ optional arguments:
   -inf {mac,fc,none}, --inference {mac,fc,none}
                         Inference method
 ```
-## A note on file `gc_1377121623225900.txt`
+### A note on file `gc_1377121623225900.txt`
 This large file is excluded from the unit tests and the default `main.py` execution because it takes a very long time to run, even using the mrv and lcv heuristics and maintaining arc consistency. I ran this file, and it took `1:54:36.671057` and the search found no solution.
 
 # Running unit tests

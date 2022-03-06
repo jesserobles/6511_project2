@@ -2,12 +2,25 @@ from collections import defaultdict
 
 
 class FileParser:
+    """
+    A class to parse an input file representing a graph coloring CSP problem.
+    The format of the input files have a line specifying the number of colors
+    for the problem (e.g., `colors = 3`), and lines representing edges between
+    adjacent vertices (e.g., `0,1`). Some of these might be repeated (e.g., 
+    `0,1` and `1,0`) so this class accounts for that by first sorting each edge.
+
+    arguments:
+        :filepath: - A string of the relative path to the file.
+    """
     def __init__(self, filepath: str) -> None:
         self.filepath = filepath
         self.parsed_payload = self.parse_file()
     
     def parse_file(self) -> dict:
-        """Method to parse a graph coloring problem input file"""
+        """
+        Method to parse a graph coloring problem input file
+        Returns a dictionary with colors, neighbors, and edges.
+        """
         neighbors = defaultdict(set)
         edges = []
         csp_payload = {}
@@ -28,9 +41,3 @@ class FileParser:
         csp_payload["edges"] = edges
         csp_payload["neighbors"] = neighbors
         return csp_payload
-
-if __name__ == "__main__":
-    import os
-    filepath = os.path.join("assets", "gc_1378296846561000.txt")
-    fp = FileParser(filepath)
-    print(fp.parse_file())

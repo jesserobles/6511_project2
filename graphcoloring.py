@@ -1,16 +1,18 @@
 from collections import defaultdict
-from typing import Dict, List, Set, Tuple, Union
+from typing import List, Set, Tuple, Union
 
 from fileparser import FileParser
 
 class GraphColoringConstraint:
     """
-    Subclass of CSPBase representing the graph coloring constraint satisfaction problem.
-    For this problem:
-        variables -> the vertices in the graph
-        domains -> the colors represented by [0, colors)
-    Assignments are of the format {2: 0}, where 2 is the vertex, and 0 is the color
-        constraints -> assignment[v1] != assignment[v2]
+    Class representing the graph coloring constraint.
+    The constraint for this problem is that neighbors cannot have the same color. Objects
+    of this class are used in `GraphColoringCSP` objects to check whether constraints are 
+    satisfied when checking a state's consitency in the `GraphColoringCSP.is_consistent` method.
+
+    arguments:
+        :vertex1: - One side of an edge
+        :vertex2: - The other side of an edge
     """
     def __init__(self, vertex1, vertex2) -> None:
         self.variables = [vertex1, vertex2]
@@ -23,9 +25,9 @@ class GraphColoringConstraint:
     def is_satisfied(self, assignment: dict) -> bool:
         """
         Returns whether neighbors A, B satisfy the constraint when they have values A=a, B=b.
-
-        assignment: a dictionary with format {0:1} where the key is the vertex and the
-            value is the assigned color. In this problem, the values should not be the same.
+        arguments:
+            :assignment: - a dictionary with format {0:1, 1:1} where the keys are adjacent vertices and the
+                values are their respectively assigned color. In this problem, the values should not be the same.
         """
         # If either vertex is unassigned, return True
         if self.vertex1 not in assignment or self.vertex2 not in assignment:
@@ -40,6 +42,11 @@ class GraphColoringCSP:
     X (variables) {X1, ..., Xn} are the vertices in the graph.
     D (domains) {D1, ..., Dn} are the possible colors for each variable, initially all colors.
     C (constraints) <(Xi, Xj), ci != cj>, where ci and cj are the colors assigned to adjacent vertices Xi and Xj.
+
+    arguments:
+        :edges: - A list or set of tuples where each tuple represents an edge between two vertices (e.g., (0, 1) represents an edge between vertices 0 and 1)
+        :colors: - An integer representing the number of colors for the CSP problem. This gets converted to a list of values and added to the domains
+        :neighbors: - A dictionary representing an adjacency list. The keys are a vertex, and the values are all of that vertex's neighbors.
     """
     def __init__(self, edges: Union[List[Tuple[int, int]], Set[Tuple[int, int]]], colors: int, neighbors:dict=None) -> None:
         self.neighbors = neighbors
@@ -63,6 +70,8 @@ class GraphColoringCSP:
     def add_constraint(self, constraint) -> None:
         """
         Method to add constraints, represented by the GraphColoringConstraint class, to our problem
+        arguments:
+            :constraint: - A constraint represented as a `GraphColoringConstraint` object
         """
         for variable in constraint.variables:
             if variable not in self.variables:
@@ -73,8 +82,8 @@ class GraphColoringCSP:
         """
         Method to determine of an assignment is consistent with all of the constraints.
         arguments:
-            :variable: whatever the vertex represents (i.e., state in map coloring)
-            :assignment: a dictionary with format {variable: value, ...}, e.g., {0: 1} where 0 is a vertex
+            :variable: - whatever the vertex represents (i.e., state in map coloring)
+            :assignment: - a dictionary with format {variable: value, ...}, e.g., {0: 1} where 0 is a vertex
                 and 1 is the color for a graph coloring problem. So if we assign {0:1}, we want to check if
                 there are any constraints on `variable` that are not satisfied.
         """
@@ -83,13 +92,13 @@ class GraphColoringCSP:
                 return False
         return True
 
-    def add_assignment(self, var, value):
+    def add_assignment(self, variable, value):
         """
         Method to update the domains attribute to account for var=value.
         Used in unit tests.
         """
-        removals = [(var, a) for a in self.domains[var] if a != value]
-        self.domains[var] = [value]
+        removals = [(variable, a) for a in self.domains[variable] if a != value]
+        self.domains[variable] = [value]
         return removals
     
     def add_assignments(self, assignments):
@@ -98,8 +107,8 @@ class GraphColoringCSP:
         Used in unit tests.
         """
         removals = []
-        for var, value in assignments.items():
-            removals.append(self.add_assignment(var, value))
+        for variable, value in assignments.items():
+            removals.append(self.add_assignment(variable, value))
         return removals
 
     def assign(self, variable, value, assignment):
@@ -139,7 +148,10 @@ class GraphColoringCSP:
         return count
     
     def valid_solution(self, assignment):
-        """The goal is to assign all variables, with all constraints satisfied."""
+        """
+        Method to check if an assignment is a complete and valid solution. 
+        The goal is to assign all variables, with all constraints satisfied.
+        """
         if not assignment:
             return False
         return (len(assignment) == len(self.variables)

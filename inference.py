@@ -3,7 +3,8 @@ from collections import defaultdict
 """
 This module contains the inference functions and supporting utilities. These functions have the following signature:
     function(csp, variable, assignment)
-and return either the string 'failure
+returns either the string 'failure' if the resulting state is inconsistent, or a list of tuples representing deletions
+from the domain where the first value is the variable and the second value is the value to be removed.
 """
 
 def forward_checking(csp, variable, assignment):
