@@ -1,5 +1,4 @@
 assets/*.pdf
-assets/input_files/gc_1377121623225900.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

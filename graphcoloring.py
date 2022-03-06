@@ -1,10 +1,9 @@
-from collections import deque
+from collections import defaultdict
 from typing import Dict, List, Set, Tuple, Union
 
-from constraint import ConstraintBase, CSPBase
 from fileparser import FileParser
 
-class GraphColoringConstraint(ConstraintBase):
+class GraphColoringConstraint:
     """
     Subclass of CSPBase representing the graph coloring constraint satisfaction problem.
     For this problem:
@@ -14,7 +13,7 @@ class GraphColoringConstraint(ConstraintBase):
         constraints -> assignment[v1] != assignment[v2]
     """
     def __init__(self, vertex1, vertex2) -> None:
-        super().__init__([vertex1, vertex2])
+        self.variables = [vertex1, vertex2]
         self.vertex1 = vertex1
         self.vertex2 = vertex2
     
@@ -35,43 +34,122 @@ class GraphColoringConstraint(ConstraintBase):
         return assignment[self.vertex1] != assignment[self.vertex2]
 
 
-class GraphColoringCSP(CSPBase):
+class GraphColoringCSP:
     """
-    Sublcass of CSPBase representing the graph coloring problem. For this problem, we have
+    Class representing the graph coloring problem. For this problem, we have
     X (variables) {X1, ..., Xn} are the vertices in the graph.
     D (domains) {D1, ..., Dn} are the possible colors for each variable, initially all colors.
     C (constraints) <(Xi, Xj), ci != cj>, where ci and cj are the colors assigned to adjacent vertices Xi and Xj.
     """
     def __init__(self, edges: Union[List[Tuple[int, int]], Set[Tuple[int, int]]], colors: int, neighbors:dict=None) -> None:
+        self.neighbors = neighbors
         self.edges = edges
         self.neighbors = neighbors
-        # Maintain list of arcs on object to improve speed
+        self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
         self.colors = colors
-        vertices = set(vertex for edge in edges for vertex in edge)
-        domains = {vertex: list(range(colors)) for vertex in vertices}
-        super().__init__(vertices, domains, neighbors)
+        self.variables = set(vertex for edge in edges for vertex in edge)
+        self.domains = {vertex: list(range(colors)) for vertex in self.variables}
+        self.assignment_counts = 0
         # Now add constraints
         for vertex1, vertex2 in self.edges:
             self.add_constraint(GraphColoringConstraint(vertex1, vertex2))
     
-    def constraint_function(self, A, a, B, b):
-        return a != b
+    def constraint_function(self, X, x, Y, y):
+        """
+        Our constraint for this problem: neighbors X and Y cannot have the same value.
+        """
+        return x != y
     
+    def add_constraint(self, constraint) -> None:
+        """
+        Method to add constraints, represented by the GraphColoringConstraint class, to our problem
+        """
+        for variable in constraint.variables:
+            if variable not in self.variables:
+                raise ValueError(f"Variable: {variable} not in constraint satisfaction problem.")
+            self.constraints[variable].append(constraint)
+    
+    def is_consistent(self, variable, assignment: dict) -> bool:
+        """
+        Method to determine of an assignment is consistent with all of the constraints.
+        arguments:
+            :variable: whatever the vertex represents (i.e., state in map coloring)
+            :assignment: a dictionary with format {variable: value, ...}, e.g., {0: 1} where 0 is a vertex
+                and 1 is the color for a graph coloring problem. So if we assign {0:1}, we want to check if
+                there are any constraints on `variable` that are not satisfied.
+        """
+        for constraint in self.constraints[variable]:
+            if not constraint.is_satisfied(assignment):
+                return False
+        return True
+
+    def add_assignment(self, var, value):
+        """
+        Method to update the domains attribute to account for var=value.
+        Used in unit tests.
+        """
+        removals = [(var, a) for a in self.domains[var] if a != value]
+        self.domains[var] = [value]
+        return removals
+    
+    def add_assignments(self, assignments):
+        """
+        Method to update the domains attribute based on an assignment.
+        Used in unit tests.
+        """
+        removals = []
+        for var, value in assignments.items():
+            removals.append(self.add_assignment(var, value))
+        return removals
+
+    def assign(self, variable, value, assignment):
+        """
+        Method that adds variable=value to assignment and updates the assignment count.
+        """
+        assignment[variable] = value
+        self.assignment_counts += 1
+    
+    def add_inferences(self, inferences):
+        """
+        Method to add inferences to the CSP during backtracking. This updates the domains attribute.
+        """
+        for variable, values in inferences.items():
+            for value in values:
+                self.domains[variable].remove(value)
+
+    def remove_inferences(self, inferences):
+        """
+        Method to restore removed values from the domain back into the domains attribute.
+        """
+        for variable, values in inferences.items():
+            for value in values:
+                self.domains[variable].append(value)
+
+    def count_conflicts(self, var, val, assignment):
+        """
+        Method that returns the number of conflicts var=val has with other variables already assigned (in assignment)
+        """
+        # We are checking if assigning var = val will cause csp.is_consistent to return False
+        count = 0
+        temp_assignment = assignment.copy()
+        temp_assignment[var] = val
+        for v in self.neighbors[var]: # iterate through the neighbors of var    
+            if v in assignment and not self.is_consistent(v, temp_assignment): # Check if the assignment causes any conflicts with a neighbor
+                count += 1
+        return count
+    
+    def valid_solution(self, assignment):
+        """The goal is to assign all variables, with all constraints satisfied."""
+        if not assignment:
+            return False
+        return (len(assignment) == len(self.variables)
+                and all(self.count_conflicts(variables, assignment[variables], assignment) == 0
+                        for variables in self.variables))
+
     @classmethod
-    def from_file(cls, filepath) -> CSPBase:
+    def from_file(cls, filepath):
+        """
+        Method to conveniently create a GraphColoringCSP object from an input file.
+        """
         fileparse = FileParser(filepath=filepath)
         return cls(**fileparse.parsed_payload)
-
-if __name__ == "__main__":
-    from time import time
-    from datetime import datetime, timedelta
-    
-    start = time()
-    gc = GraphColoringCSP.from_file('assets/input_files/gc_1377121623225900.txt')
-    end = time()
-    print(f"Finished parsing in {timedelta(seconds=end - start)}")
-    start = time()
-    assignment = gc.backtracking_search()
-    end = time()
-    print(f"Finished search in {timedelta(seconds=end - start)}")
-
