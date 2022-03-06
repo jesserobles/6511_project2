@@ -54,18 +54,19 @@ def backtrack(csp, assignment: dict, select_unassigned_variable, order_domain_va
         if csp.is_consistent(variable, {variable: value, **assignment}):
             # add {var = value} to assignment
             csp.assign(variable, value, assignment)
-            removals = csp.add_assignment(variable, value)
+            csp.add_assignment(variable, value)
             # inferences <- INFERENCE(csp, var, assignment)
             inferences = inference(csp, variable, assignment)
             # if inferences != failure then
-            if inferences:
-                # add inferences to csp -> This happens in the inference method
+            if inferences != "failure":
+                # add inferences to csp
+                csp.add_inferences(inferences)
                 # result <- BACKTRACK(csp, assignment)
                 result = backtrack(csp, assignment, select_unassigned_variable, order_domain_values, inference)
-                if result:
-                    return result
-                # remove {var = value} from assignment
-                csp.restore(removals)
+                if result: return result
+                # remove inferences from csp
+                csp.remove_inferences(inferences)
+            # remove {var = value} from assignment
             del assignment[variable]
     return None
 

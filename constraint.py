@@ -96,15 +96,6 @@ class CSPBase(ABC):
             removals.append(self.add_assignment(var, value))
         return removals
 
-    def add_inference(self, variable, value):
-        """Method to add an inference, where the inference is a removal of a value from the domain of a variable"""
-        self.current_domains[variable].remove(value)
-    
-    def add_inferences(self, inferences, removals=None):
-        for variable, value in inferences:
-            self.prune(variable, value)
-
-
     def assign(self, variable, value, assignment):
         assignment[variable] = value
         self.assignment_counts += 1
@@ -113,11 +104,17 @@ class CSPBase(ABC):
         """Undo a supposition and all inferences from it."""
         for B, b in removals:
             self.current_domains[B].append(b)
-
-    def choices(self, variable):
-        """Return all values for var that aren't currently ruled out."""
-        return (self.current_domains or self.domains)[variable]
     
+    def add_inferences(self, inferences):
+        for variable, values in inferences.items():
+            for value in values:
+                self.current_domains[variable].remove(value)
+
+    def remove_inferences(self, inferences):
+        for variable, values in inferences.items():
+            for value in values:
+                self.current_domains[variable].append(value)
+
     def prune(self, var, value, removals=None):
         """Rule out var=value."""
         self.current_domains[var].remove(value)
