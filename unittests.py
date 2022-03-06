@@ -1,10 +1,11 @@
 import os
 import unittest
 
+from backtracking import backtracking_search
 from graphcoloring import GraphColoringCSP
 from fileparser import FileParser
-from heuristics import lcv, mrv
-from inference import forward_checking
+from heuristics import lcv, mrv, static_ordering, unordered_domain_values
+from inference import ac3, forward_checking, maintain_arc_consistency, no_inference, revise
 
 class TestFileParser(unittest.TestCase):
 
@@ -76,7 +77,10 @@ class TestHeuristics(unittest.TestCase):
         # assignment = {0: 0, 1: 1}
         variable = mrv(csp, assignment)
         self.assertEqual(variable, 2, f"MRV heuristic failed: expected 2, got {variable}")
-    
+
+
+class TestInference(unittest.TestCase):
+    """Test cases for inference methods: forward checking, maintaining arc consistency with ac3"""
     def test_forward_checking(self):
         """
         Unit test for forward checking. We continue using the Australia problem, with the forward
@@ -84,35 +88,163 @@ class TestHeuristics(unittest.TestCase):
         Territories are donoted as 0: WA, 1: NT, 2: SA, 3: Q, 4: NSW, 5: V, 6: T
         Colors are donoted by 0: 'red', 1: 'green', 2: 'blue'
         """
-        assignment = {}
         csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
-        consistent = forward_checking(csp, 0, 0, assignment) # WA=red
+        assignment = {}
+
+        # WA=red
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=0, assignment=assignment) 
         self.assertTrue(consistent)
         # After this assignment, domains should be {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
 
-        consistent = forward_checking(csp, 3, 1, assignment) # Q=green
+        # Q=green
+        variable = 3
+        value = 1
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=variable, assignment=assignment) 
         self.assertTrue(consistent)
         # After this assignment, domains should be {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         expected_domains = {0: [0], 1: [2], 2: [2], 3: [1], 4: [0, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
-
-        consistent = forward_checking(csp, 5, 2, assignment) # V=blue
-        # After this assignment, the solution is inconsisten, and domains should be {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
+        
+        # V=blue
+        variable = 5
+        value = 2
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        consistent = forward_checking(csp, variable=variable, assignment=assignment) 
+        # After this assignment, the solution is inconsisten,t and domains should be {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
         self.assertFalse(consistent)
         expected_domains = {0: [0], 1: [2], 2: [], 3: [1], 4: [0], 5: [2], 6: [0, 1]}
         self.assertEqual(csp.current_domains, expected_domains, "Unexpected domain values in forward checking")
 
+    def test_revise(self):
+        """
+        Unit test for the revise function. We want to ensure that this function doesn't revise if no conflicts
+        exist, but does revise the domain if it encounters a conflict.
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        # Loop through the neighbors to revise as needed
+        queue = [(x, variable) for x in csp.neighbors[variable]]
+        for Xi, Xj in queue:
+            revised = revise(csp, Xi, Xj)
+        self.assertEqual(csp.current_domains, expected_domains)
 
 
-class TestInference(unittest.TestCase):
-    def test_forward_checking(self):
-        pass
-
-    def test_maintain_arc_consistency(self):
-        pass
+    def test_ac3(self):
+        """
+        Unit test for ac3 inference. This is tested very similarly to the revise algorithm
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        queue = [(x, variable) for x in csp.neighbors[variable]]
+        inferences = ac3(csp, queue)
+        self.assertEqual(csp.current_domains, expected_domains)
     
+    def test_maintain_arc_consistency(self):
+        """
+        Unit test for maintain arc consistency inference.
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        inferences = maintain_arc_consistency(csp, variable, assignment)
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        self.assertEqual(csp.current_domains, expected_domains)
+
+
+    
+class TestBacktracking(unittest.TestCase):
+    """
+    Unit tests for backtracking search. These tests are executed on the test files (more than just the Australia example)
+    """
+
+    def test_backtracking_search_no_inference(self):
+        """
+        Unit test for backtracking search with no inference
+        """
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        no_solution = "gc_78317097930401.txt"
+        for ix, file in enumerate(files):
+            filepath = os.path.join(folder, file)
+            csp = GraphColoringCSP.from_file(filepath)
+            solution = backtracking_search(csp, verbose=False, 
+                # select_unassigned_variable=static_ordering,
+                # order_domain_values=unordered_domain_values,
+                inference=no_inference
+            )
+            if file == no_solution:
+                self.assertIsNone(solution)
+            if solution:
+                self.assertTrue(csp.valid_solution(solution))
+
+    def test_backtracking_search_forward_checking(self):
+        """
+        Unit test for backtracking search with forward checking
+        """
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        no_solution = "gc_78317097930401.txt"
+        for ix, file in enumerate(files):
+            filepath = os.path.join(folder, file)
+            csp = GraphColoringCSP.from_file(filepath)
+            solution = backtracking_search(csp, verbose=False, inference=forward_checking)
+            if file == no_solution:
+                self.assertIsNone(solution)
+            if solution:
+                self.assertTrue(csp.valid_solution(solution))
+            else:
+                print(file)
+    
+    def test_backtracking_search_mac(self):
+        """
+        Unit test for backtracking search with maintaining arc consistency using ac3
+        """
+        folder = os.path.join("assets", "input_files")
+        files = [file for file in os.listdir(folder) if not 'gc_1377121623225900' in file]
+        # filepath = os.path.join(folder, "australia.txt")
+        # csp = csp = GraphColoringCSP.from_file(filepath)
+        # solution = backtracking_search(csp, verbose=False)
+        # self.assertIsNotNone(solution, "Search returned no solution, although solution exists")
+        no_solution = "gc_78317097930401.txt"
+        solutions = []
+        for ix, file in enumerate(files):
+            filepath = os.path.join(folder, file)
+            csp = GraphColoringCSP.from_file(filepath)
+            # print(f"File {ix}")
+            solution = backtracking_search(csp, verbose=False, inference=maintain_arc_consistency)
+            solutions.append(solution)
+            # if not solution:
+            #     print(file)
+            if solution and not csp.valid_solution(solution):
+                print("INVALID")
+            # if file == no_solution:
+            #     self.assertIsNone(solution, f"Search returned solution for file {file}, although no solution exists")
+            # else:
+            #     self.assertIsNotNone(solution, f"Search returned no solution for file {file}, although a solution exists")
 
 if __name__ == "__main__":
     unittest.main()

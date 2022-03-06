@@ -1,25 +1,21 @@
 
-
-
-
 def no_inference(*args):
     return True
 
-def forward_checking(csp, variable, value, assignment, removals=None):
+def forward_checking(csp, variable, assignment, removals=None):
     """Prune neighbor values inconsistent with var=value.
     Whenever a variable X is assigned, the forward-checking process establishes arc consistency 
     for it: for each unassigned variable Y that is connected to X by a constraint, delete from 
     Y's domain any value that is inconsistent with the value chosen for X
     """
     consistent = True
-    csp.add_assignment(variable, value)
-    assignment[variable] = value
+    removals = removals or []
+    value = assignment[variable]
     for neighbor in csp.neighbors[variable]:
         if neighbor not in assignment: # Only consider unassigned variables
-            # for domain_value in csp.current_domains[neighbor]: # Iterate through the neighbors available domains
-            for constraint in csp.constraints[neighbor]:
+            for y in csp.current_domains[neighbor]: 
                 # Check if the assignment is consistent with the current domain value
-                if not constraint.is_satisfied({variable: value, neighbor: value}):
+                if not csp.constraint_function(variable, value, neighbor, y):
                     csp.prune(neighbor, value, removals) # remove inconsistent domain value
             if not csp.current_domains[neighbor]:
                 consistent = False
@@ -43,28 +39,35 @@ def ac3(csp, queue=None, removals=None):
     while queue:
         xi, xj = queue.pop()
         if revise(csp, xi, xj):
-            if len(csp.domains[xi]) == 0:
+            if len(csp.current_domains[xi]) == 0:
                 return False # CSP is inconsistent
             for xk in csp.neighbors[xi]:
                 if xk != xj:
                     queue.append((xk, xi))
     return True # CSP is consistent
 
-def revise(csp, xi, xj):
-    """
-    Method to remove inconsistent values from the domain of xi given the assignment (xi, xj)
-    Returns True if the domain is revised, False otherwise
-    """
-    removed = False
-    for x in csp.current_domains[xi]:
-        # if no value y in DOMAIN[Xj] allows (x,y) to satisfy the constraint Xi <-> Xj
-        if not any(csp.is_consistent(x, {x: y}) for y in csp.current_domains[xj]):
-            # Delete x from DOMAIN[Xi]; removed <- true
-            csp.current_domains[xi].remove(x)
-            removed = True
-    return removed
+
+def revise(csp, Xi, Xj, removals=None):
+    revised = False
+    for x in csp.current_domains[Xi]:
+        value_exists = False # if no value y in Dj allows (x,y) to satisfy the constraint between Xi and Xj
+        for y in csp.current_domains[Xj]:
+            if csp.constraint_function(Xi, x, Xj, y): # If this is true then a value exists, so no revision
+                value_exists = True
+                break
+        if not value_exists: # No value satisfies the constraint, so remove it
+            csp.prune(Xi, x)
+            revised = True
+    return revised
 
 
-def maintain_arc_consistency(csp, variable, assignment, removals=None, constraint_propagation=ac3):
+def dom_j_up(csp, queue):
+    return sorted(queue, key=lambda t: -(len(csp.current_domains[t[1]])))
+
+def maintain_arc_consistency(csp, variable, assignment, removals=None, constraint_propagation=ac3, ordering_heuristic=None):
     """Maintain arc consistency."""
-    return constraint_propagation(csp, queue={(x, variable) for x in csp.neighbors[variable]}, removals=removals)
+    queue = [(x, variable) for x in csp.neighbors[variable]]
+    # queue.extend([(variable, x) for x in csp.neighbors[variable]])
+    if ordering_heuristic:
+        queue = ordering_heuristic(csp, queue)
+    return constraint_propagation(csp, queue=queue, removals=removals)

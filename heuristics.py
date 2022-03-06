@@ -16,11 +16,19 @@ def static_ordering(csp, assignment):
     return unassigned_variables[0]
 
 def mrv(csp, assignment):
-    """Minimum-remaining-values heuristic: Choose the variable with the fewest remaining "legal" values"""
-    unassigned_variables = sorted(
-        [(variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])) for variable in csp.variables if variable not in assignment],
-        key=lambda x: (x[1], x[2])
-    )
+    """
+    Minimum-remaining-values heuristic: Choose the variable with the fewest remaining "legal" values.
+    This incorporates the tie breaking rule.
+    """
+    unassigned_variables = []
+    for variable in csp.variables:
+        if variable not in assignment:
+            unassigned_variables.append((variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])))
+    # unassigned_variables = sorted(
+    #     [(variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])) for variable in csp.variables if variable not in assignment],
+    #     key=lambda x: (x[1], x[2])
+    # )
+    unassigned_variables.sort(key=lambda x: (x[1], x[2]))
     return unassigned_variables[0][0]
 
 
@@ -41,18 +49,6 @@ def lcv(csp, variable, assignment):
     Least constraining value heuristic.
     """
     return sorted(csp.current_domains[variable], key=lambda value: csp.count_conflicts(variable, value, assignment))
-
-
-
-def shuffled(iterable):
-    """Randomly shuffle a copy of iterable."""
-    items = list(iterable)
-    random.shuffle(items)
-    return items
-
-def argmin_random_tie(seq, key=lambda x: x):
-    """Return a minimum element of seq; break ties at random."""
-    return min(shuffled(seq), key=key)
 
 def remaining_legal_values(csp, variable, assignment):
     """

@@ -51,7 +51,6 @@ class CSPBase(ABC):
         self.domains = domains
         self.neighbors = neighbors
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
-        self.arcs = self.get_arcs()
         self.assignment = {}
         self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         self.assignment_counts = 0
@@ -59,10 +58,12 @@ class CSPBase(ABC):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.assignment}>"
     
-    def support_pruning(self):
-        """Method to initialize the current domains during search"""
-        if self.current_domains is None:
-            self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
+    @abstractmethod
+    def constraint_function(self, *args):
+        """
+        Override this method to specify the CSP constraint.
+        """
+        pass
 
     def add_constraint(self, constraint: ConstraintBase) -> None:
         for variable in constraint.variables:
@@ -95,6 +96,14 @@ class CSPBase(ABC):
             removals.append(self.add_assignment(var, value))
         return removals
 
+    def add_inference(self, variable, value):
+        """Method to add an inference, where the inference is a removal of a value from the domain of a variable"""
+        self.current_domains[variable].remove(value)
+    
+    def add_inferences(self, inferences, removals=None):
+        for variable, value in inferences:
+            self.prune(variable, value)
+
 
     def assign(self, variable, value, assignment):
         assignment[variable] = value
@@ -108,11 +117,6 @@ class CSPBase(ABC):
     def choices(self, variable):
         """Return all values for var that aren't currently ruled out."""
         return (self.current_domains or self.domains)[variable]
-
-    def get_arcs(self):
-        a = set([tuple(edge.variables) for edges in self.constraints.values() for edge in edges])
-        a.update([(v[-1], v[0]) for v in a])
-        return deque(a)
     
     def prune(self, var, value, removals=None):
         """Rule out var=value."""
@@ -122,8 +126,6 @@ class CSPBase(ABC):
     
     def count_conflicts(self, var, val, assignment):
         """Return the number of conflicts var=val has with other variables already assigned (in assignment)
-        constraints A function f(A, a, B, b) that returns true if neighbors
-                    A, B satisfy the constraint when they have values {A:a}, {B:b}
         """
     
         # We are checking if assigning var = val will cause csp.is_consistent to return False
@@ -131,6 +133,12 @@ class CSPBase(ABC):
         temp_assignment = assignment.copy()
         temp_assignment[var] = val
         for v in self.neighbors[var]: # iterate through the neighbors of var    
-            if v in assignment and not self.is_consistent(v, temp_assignment): # Check if the assignment causes any conflicts with 
+            if v in assignment and not self.is_consistent(v, temp_assignment): # Check if the assignment causes any conflicts with a neighbor
                 count += 1
         return count
+    
+    def valid_solution(self, assignment):
+        """The goal is to assign all variables, with all constraints satisfied."""
+        return (len(assignment) == len(self.variables)
+                and all(self.count_conflicts(variables, assignment[variables], assignment) == 0
+                        for variables in self.variables))

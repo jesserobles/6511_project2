@@ -1,3 +1,4 @@
+from tabnanny import verbose
 from sortedcollections import SortedSet
 
 from constraint import CSPBase
@@ -21,7 +22,7 @@ function BACKTRACK(csp, assignment) returns a solution or failure
             inferences <- INFERENCE(csp, var, assignment)
             if inferences != failure then
                 add inferences to csp
-                result←BACKTRACK(csp, assignment)
+                result <- BACKTRACK(csp, assignment)
                 if result != failure then return result
                 remove inferences from csp
             remove {var = value} from assignment
@@ -35,36 +36,36 @@ def dom_j_up(csp, queue):
     return SortedSet(queue, key=lambda t: -len(csp.current_domains[t[1]]))
 
 
-def backtracking_search(csp: CSPBase, select_unassigned_variable=mrv, order_domain_values=lcv, inference=maintain_arc_consistency):
-    csp.support_pruning()
-    print_problem(select_unassigned_variable, order_domain_values, inference)
+def backtracking_search(csp, verbose=True, select_unassigned_variable=mrv, order_domain_values=lcv, inference=maintain_arc_consistency):
+    if verbose:
+        print_problem(select_unassigned_variable, order_domain_values, inference)
     return backtrack(csp, {}, select_unassigned_variable=select_unassigned_variable, order_domain_values=order_domain_values, inference=inference)
 
 def backtrack(csp, assignment: dict, select_unassigned_variable, order_domain_values, inference):
     # if assignment is complete then return assignment
-    if len(assignment) == len(csp.variables): # Base case
+    # if len(assignment) == len(csp.variables): # Base case
+    if csp.valid_solution(assignment): # Base case
         return assignment
     # var <- SELECT-UNASSIGNED-VARIABLE(csp, assignment)
     variable = select_unassigned_variable(csp, assignment)
     # for each value in ORDER-DOMAIN-VALUES(csp, var, assignment) do
     for value in order_domain_values(csp, variable, assignment):
         # if value is consistent with assignment then
-        temp_assignment = assignment.copy()
-        temp_assignment[variable] = value
-        if csp.is_consistent(variable, temp_assignment):
+        if csp.is_consistent(variable, {variable: value, **assignment}):
             # add {var = value} to assignment
             csp.assign(variable, value, assignment)
-            removals = csp.add_assingment(variable, value)
+            removals = csp.add_assignment(variable, value)
             # inferences <- INFERENCE(csp, var, assignment)
             inferences = inference(csp, variable, assignment)
             # if inferences != failure then
             if inferences:
-                # add inferences to csp
+                # add inferences to csp -> This happens in the inference method
+                # result <- BACKTRACK(csp, assignment)
                 result = backtrack(csp, assignment, select_unassigned_variable, order_domain_values, inference)
                 if result:
                     return result
-            # remove {var = value} from assignment
-            csp.restore(removals)
+                # remove {var = value} from assignment
+                csp.restore(removals)
             del assignment[variable]
     return None
 
