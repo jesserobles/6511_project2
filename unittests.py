@@ -125,55 +125,58 @@ class TestInference(unittest.TestCase):
         # The forward checking function should return 'failure'
         self.assertEqual(inferences, "failure")
 
-    # def test_revise(self):
-    #     """
-    #     Unit test for the revise function. We want to ensure that this function doesn't revise if no conflicts
-    #     exist, but does revise the domain if it encounters a conflict.
-    #     """
-    #     csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
-    #     assignment = {}
-    #     variable = 0
-    #     value = 0
-    #     csp.assign(variable, value, assignment)
-    #     csp.add_assignment(variable, value)
-    #     # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
-    #     expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-    #     # Loop through the neighbors to revise as needed
-    #     queue = [(x, variable) for x in csp.neighbors[variable]]
-    #     for Xi, Xj in queue:
-    #         revised = revise(csp, Xi, Xj)
-    #     self.assertEqual(csp.current_domains, expected_domains)
+    def test_revise(self):
+        """
+        Unit test for the revise function. We want to ensure that this function doesn't revise if no conflicts
+        exist, but does revise the domain if it encounters a conflict.
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        # Loop through the neighbors to revise as needed
+        queue = [(x, variable) for x in csp.neighbors[variable]]
+        for Xi, Xj in queue:
+            revised = revise(csp, Xi, Xj)
+            csp.add_inferences({Xi: revised})
+        self.assertEqual(csp.current_domains, expected_domains)
 
 
-    # def test_ac3(self):
-    #     """
-    #     Unit test for ac3 inference. This is tested very similarly to the revise algorithm
-    #     """
-    #     csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
-    #     assignment = {}
-    #     variable = 0
-    #     value = 0
-    #     csp.assign(variable, value, assignment)
-    #     csp.add_assignment(variable, value)
-    #     # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
-    #     expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-    #     queue = [(x, variable) for x in csp.neighbors[variable]]
-    #     inferences = ac3(csp, queue)
-    #     self.assertEqual(csp.current_domains, expected_domains)
+    def test_ac3(self):
+        """
+        Unit test for ac3 inference. This is tested very similarly to the revise algorithm
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        # Once we've assigned {0: 0}, which has neighbors 1 and 2, we expect the domains for 1 and 2 to not have 0 in them
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        queue = [(x, variable) for x in csp.neighbors[variable]]
+        inferences = ac3(csp, queue)
+        csp.add_inferences(inferences)
+        self.assertEqual(csp.current_domains, expected_domains)
     
-    # def test_maintain_arc_consistency(self):
-    #     """
-    #     Unit test for maintain arc consistency inference.
-    #     """
-    #     csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
-    #     assignment = {}
-    #     variable = 0
-    #     value = 0
-    #     csp.assign(variable, value, assignment)
-    #     csp.add_assignment(variable, value)
-    #     inferences = maintain_arc_consistency(csp, variable, assignment)
-    #     expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
-    #     self.assertEqual(csp.current_domains, expected_domains)
+    def test_maintain_arc_consistency(self):
+        """
+        Unit test for maintain arc consistency inference.
+        """
+        csp = GraphColoringCSP.from_file(os.path.join("assets", "input_files", "australia.txt"))
+        assignment = {}
+        variable = 0
+        value = 0
+        csp.assign(variable, value, assignment)
+        csp.add_assignment(variable, value)
+        inferences = maintain_arc_consistency(csp, variable, assignment)
+        csp.add_inferences(inferences)
+        expected_domains = {0: [0], 1: [1, 2], 2: [1, 2], 3: [0, 1, 2], 4: [0, 1, 2], 5: [0, 1, 2], 6: [0, 1, 2]}
+        self.assertEqual(csp.current_domains, expected_domains)
 
 
     
