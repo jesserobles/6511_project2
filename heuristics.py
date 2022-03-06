@@ -1,5 +1,3 @@
-import random
-
 from utils import count_trues
 
 # Heuristics for variable ordering
@@ -8,9 +6,6 @@ def static_ordering(csp, assignment):
     """
     Method to return an assignment.
     Simplest method is to just return the first unassigned variable.
-    TODO: 
-        - Incorporate MRV: choosing the variable with the fewest "legal" values
-        - Incorporate degree heuristic: selecting the variable that is involved in the largest number of constraints on other unassigned variables
     """
     unassigned_variables = [variable for variable in csp.variables if variable not in assignment]
     return unassigned_variables[0]
@@ -23,11 +18,9 @@ def mrv(csp, assignment):
     unassigned_variables = []
     for variable in csp.variables:
         if variable not in assignment:
+            # Collecting the variable, how many remaining legal values, and how many constraints so we can sort them
             unassigned_variables.append((variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])))
-    # unassigned_variables = sorted(
-    #     [(variable,  remaining_legal_values(csp, variable, assignment), -len(csp.constraints[variable])) for variable in csp.variables if variable not in assignment],
-    #     key=lambda x: (x[1], x[2])
-    # )
+    # Sort by remaining legal values, then by how many constraints they have (tie breaker)
     unassigned_variables.sort(key=lambda x: (x[1], x[2]))
     return unassigned_variables[0][0]
 

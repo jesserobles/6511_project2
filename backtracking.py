@@ -1,4 +1,3 @@
-from tabnanny import verbose
 from sortedcollections import SortedSet
 
 from constraint import CSPBase

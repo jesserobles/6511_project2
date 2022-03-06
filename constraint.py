@@ -3,25 +3,6 @@ from copy import deepcopy
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set, Union
 
-from sklearn import neighbors
-
-from utils import count_trues
-
-"""
-TODO: Explore and implement the following CSP backtracking efficiency improvement methods:
-Ordering:
-    Variables:
-        Most constrained variable (MCV) - Choose the variable with the fewest legal left values in its domain
-        Tie breaking rule - consider a variable that is involved in more constraints
-    Values:
-        Least constraining value (LCV) - Choose the value that rules out the fewest values in the remaining variables
-
-Filtering: Keep track of domains for unassigned variables and cross off bad options
-Forward checking: Cross off values that violate a constraint when added to the existing assignment
-
-AC-3 algorithm
-Remember: Delete from the tail!
-"""
 
 class ConstraintBase(ABC):
     """Base class for constraints"""
@@ -38,7 +19,7 @@ class CSPBase(ABC):
     """
     Base class for constrained satisfaction problems.
     args:
-        variables: a list of variables
+        variables: a list of variables (vertices)
         domains: a dictionary mapping variables to possible values
         neighbors: a dictionary containing vertices as the keys and their neighbors as the values (adjacency list)
     properties:
@@ -51,12 +32,11 @@ class CSPBase(ABC):
         self.domains = domains
         self.neighbors = neighbors
         self.constraints: dict = defaultdict(list) # Equivalent to lazily instantiating each value as []
-        self.assignment = {}
         self.current_domains = deepcopy(self.domains) # Initially this is the same as the domains, but varies during search
         self.assignment_counts = 0
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.assignment}>"
+        return f"<{self.__class__.__name__} -> vars: {len(self.variables)}, domains: {len(self.domains)}>"
     
     @abstractmethod
     def constraint_function(self, *args):
