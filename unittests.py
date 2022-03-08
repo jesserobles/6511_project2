@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from backtracking import backtracking_search, backtracking_search_no_inference
+from backtracking import backtracking_search
 from graphcoloring import GraphColoringCSP
 from fileparser import FileParser
 from heuristics import lcv, mrv, static_ordering, unordered_domain_values

@@ -70,13 +70,8 @@ def revise(csp, Xi, Xj):
             revised.append(x)
     return revised
 
-def dom_j_up(csp, queue):
-    return sorted(queue, key=lambda t: -(len(csp.domains[t[1]])))
 
-def maintain_arc_consistency(csp, variable, assignment, constraint_propagation=ac3, ordering_heuristic=None):
+def maintain_arc_consistency(csp, variable, assignment, constraint_propagation=ac3):
     """Maintain arc consistency."""
     queue = [(x, variable) for x in csp.neighbors[variable]]
-    # queue.extend([(variable, x) for x in csp.neighbors[variable]])
-    if ordering_heuristic:
-        queue = ordering_heuristic(csp, queue)
     return constraint_propagation(csp, queue=queue)
